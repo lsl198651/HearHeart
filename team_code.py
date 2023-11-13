@@ -133,6 +133,9 @@ def train_challenge_model(data_folder, model_folder, verbose):
     df_wide = pd.DataFrame(wide_fea_tr)
     # 5 folds cross-validation, stratified split according to labels and put
     kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=2022)
+    acc_list=[]
+    roc_list=[]
+    auprc_list=[]
     for i, (train_idx, val_idx) in enumerate(kf.split(pIDs, labels)):
         print('Fold {} training started'.format(str(i)))
         # df_result_temp = pd.DataFrame()
@@ -176,8 +179,14 @@ def train_challenge_model(data_folder, model_folder, verbose):
             scheduler = None
         # writer = SummaryWriter(f'C:/Users/huilu/Office/Projects/PCG/runs')
         # ,score, best_acc, best_score, y_pred, y_pro
-        acc, y_testb = train_and_evaluate(model, device,train_loader, val_loader,optimizer, loss_fn, i,model_folder, scheduler)
-        print(f'fold{i}: Acc:{acc:.3%},test:{y_testb}')
+        acc, auroc,auprc = train_and_evaluate(model, device,train_loader, val_loader,optimizer, loss_fn, i,model_folder, scheduler)
+        print(f'fold{i}: Acc:{acc:.3%},auroc:{auroc},auprc:{auprc}')
+        acc_list.append(acc)
+        roc_list.append(auroc)
+        auprc_list.append(auprc)
+    print(acc_list)
+    print(roc_list)
+    print(auprc_list)
 
     # clinical outcome classification
     # random_state = 6789  # Random state; set for reproducibility.
@@ -424,7 +433,7 @@ def get_corr_recordings(data, label):
     num_locations = get_num_locations(data)
     recording_information = data.split('\n')[1:num_locations + 1]
     recording_files = []
-    if label in ['Unknown', 'Absent']:
+    if label in [ 'Absent']:
         for i in range(num_locations):
             entries = recording_information[i].split(' ')
             recording_file = entries[2]
@@ -558,7 +567,8 @@ def train(model, device, data_loader, optimizer, loss_fn):
 def train_and_evaluate(model, device, train_loader, val_loader, optimizer, loss_fn, split, model_folder,
                        scheduler=None):
     best_acc = 0.0
-    best_score = 0
+    best_auroc = 0
+    best_auprc = 0
     y_pred_best = []
     y_prob_best = []
     n_stop = 20  # set the early stopping epochs as 10
@@ -574,13 +584,15 @@ def train_and_evaluate(model, device, train_loader, val_loader, optimizer, loss_
         print(f"Epoch {epoch}/{n_epoch}\n Loss:{avg_loss:.3f}\n Train Acc:{acc_tr:.3%} ")#Train AUC : {} 
 
         print(f"Epoch {epoch}/{n_epoch}\n Valid Loss:{loss:.3f} \n Valid Acc:{acc:.3%} \n Valid AUC : {auc:.3f} \n Valid auprc : {auprc:.3f} ")
-        # is_best = (best_score < score[-1])
-        # if is_best:
-        #     best_score = score[-1]
-        #     best_acc = acc
-        #     y_pred_best = np.argmax(y_pred, axis=1)
-        #     y_prob_best = y_prob
-        #     epochs_no_improve = 0
+        is_best = (best_acc < acc)
+        if is_best:
+            best_auroc=auc
+            best_auprc=auprc
+            best_acc = best_acc
+            
+            # y_pred_best = np.argmax(y_pred, axis=1)
+            # y_prob_best = y_prob
+            # epochs_no_improve = 0
         # else:
         #     epochs_no_improve += 1
         #     if epochs_no_improve == n_stop:
@@ -589,10 +601,10 @@ def train_and_evaluate(model, device, train_loader, val_loader, optimizer, loss_
         # if scheduler:
         #     scheduler.step()
 
-        # utils.save_checkpoint({"epoch": epoch + 1,
-        #                        "model": model.state_dict(),
-        #                        "optimizer": optimizer.state_dict()}, is_best, split, "{}".format(model_folder))
-    return acc,  np.argmax(y_test, axis=1) #score[-1], best_acc, best_score,y_pred_best, y_prob_best
+        utils.save_checkpoint({"epoch": epoch + 1,
+                               "model": model.state_dict(),
+                               "optimizer": optimizer.state_dict()}, is_best, split, "{}".format(model_folder))
+    return acc,  best_auroc,best_auprc#score[-1], best_acc, best_score,y_pred_best, y_prob_best
 
 
 # if __name__ == '__main__':
