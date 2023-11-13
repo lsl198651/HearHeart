@@ -177,7 +177,7 @@ def train_challenge_model(data_folder, model_folder, verbose):
         # writer = SummaryWriter(f'C:/Users/huilu/Office/Projects/PCG/runs')
         # ,score, best_acc, best_score, y_pred, y_pro
         acc, y_testb = train_and_evaluate(model, device,train_loader, val_loader,optimizer, loss_fn, i,model_folder, scheduler)
-        
+        print(f'fold{i}: Acc:{acc:.3%},test:{y_testb}')
 
     # clinical outcome classification
     # random_state = 6789  # Random state; set for reproducibility.
