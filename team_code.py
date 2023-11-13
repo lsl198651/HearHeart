@@ -175,10 +175,9 @@ def train_challenge_model(data_folder, model_folder, verbose):
         else:
             scheduler = None
         # writer = SummaryWriter(f'C:/Users/huilu/Office/Projects/PCG/runs')
-        acc, score, best_acc, best_score, y_test, y_pred, y_prob = train_and_evaluate(model, device,
-                                                                                      train_loader, val_loader,
-                                                                                      optimizer, loss_fn, i,
-                                                                                      model_folder, scheduler)
+        # ,score, best_acc, best_score, y_pred, y_pro
+        acc, y_testb = train_and_evaluate(model, device,train_loader, val_loader,optimizer, loss_fn, i,model_folder, scheduler)
+        
 
     # clinical outcome classification
     # random_state = 6789  # Random state; set for reproducibility.
@@ -257,7 +256,7 @@ def load_challenge_model(model_folder, verbose):
 def run_challenge_model(model, data, recordings, verbose):
     # separate the murmur and outcome classifiers
     murmur_models = model['murmur_models']
-    outcome_models = model['outcome_models']
+    # outcome_models = model['outcome_models']
 
     murmur_classes = ['Present', 'Unknown', 'Absent']
     num_record = len(recordings)
@@ -552,8 +551,8 @@ def train(model, device, data_loader, optimizer, loss_fn):
             target_all.extend(target.cpu().detach().numpy())
             prob_all.extend(prob.cpu().detach().numpy())
         acc = correct_prediction / total_prediction
-        auc_score = roc_auc_score(np.asarray(target_all), np.asarray(prob_all), average='macro', multi_class='ovr')
-    return loss_avg(), acc, auc_score
+        # auc_score = roc_auc_score(y_true=np.asarray(target_all), y_score=np.asarray(prob_all), average='macro', multi_class='ovr')
+    return loss_avg(), acc#, auc_score
 
 
 def train_and_evaluate(model, device, train_loader, val_loader, optimizer, loss_fn, split, model_folder,
@@ -563,36 +562,37 @@ def train_and_evaluate(model, device, train_loader, val_loader, optimizer, loss_
     y_pred_best = []
     y_prob_best = []
     n_stop = 20  # set the early stopping epochs as 10
-    n_epoch = 100
+    n_epoch = 50
     epochs_no_improve = 0
     for epoch in range(n_epoch):
-        avg_loss, acc_tr, auc_score_tr = train(model, device, train_loader, optimizer, loss_fn)
+        avg_loss, acc_tr= train(model, device, train_loader, optimizer, loss_fn)#, auc_score_tr 
         # loss, acc, score, y_test, y_pred, y_prob = validate.evaluate(model, device, val_loader, loss_fn)
         loss, acc, score, y_test, y_pred, y_prob = validate.evaluate_patch(model, device, val_loader, loss_fn)
         # auc = roc_auc_score(np.argmax(y_test, axis=1), y_prob, average='macro', multi_class='ovr')
         auc = score[1]
-        print("Epoch {}/{} Loss:{} Train Acc:{} Train AUC : {} ".format(epoch, n_epoch, avg_loss, acc_tr, auc_score_tr))
-        print("Epoch {}/{} Valid Loss:{} Valid Acc:{} Valid AUC : {} Valid Score : {} ".format(epoch, n_epoch, loss, acc,
-                                                                                               auc, score[-1]))
-        is_best = (best_score < score[-1])
-        if is_best:
-            best_score = score[-1]
-            best_acc = acc
-            y_pred_best = np.argmax(y_pred, axis=1)
-            y_prob_best = y_prob
-            epochs_no_improve = 0
-        else:
-            epochs_no_improve += 1
-            if epochs_no_improve == n_stop:
-                print('Early stopping')
-                break
-        if scheduler:
-            scheduler.step()
+        auprc=score[2]
+        print(f"Epoch {epoch}/{n_epoch}\n Loss:{avg_loss:.3f}\n Train Acc:{acc_tr:.3%} ")#Train AUC : {} 
 
-        utils.save_checkpoint({"epoch": epoch + 1,
-                               "model": model.state_dict(),
-                               "optimizer": optimizer.state_dict()}, is_best, split, "{}".format(model_folder))
-    return acc, score[-1], best_acc, best_score, np.argmax(y_test, axis=1), y_pred_best, y_prob_best
+        print(f"Epoch {epoch}/{n_epoch}\n Valid Loss:{loss:.3f} \n Valid Acc:{acc:.3%} \n Valid AUC : {auc:.3f} \n Valid auprc : {auprc:.3f} ")
+        # is_best = (best_score < score[-1])
+        # if is_best:
+        #     best_score = score[-1]
+        #     best_acc = acc
+        #     y_pred_best = np.argmax(y_pred, axis=1)
+        #     y_prob_best = y_prob
+        #     epochs_no_improve = 0
+        # else:
+        #     epochs_no_improve += 1
+        #     if epochs_no_improve == n_stop:
+        #         print('Early stopping')
+        #         break
+        # if scheduler:
+        #     scheduler.step()
+
+        # utils.save_checkpoint({"epoch": epoch + 1,
+        #                        "model": model.state_dict(),
+        #                        "optimizer": optimizer.state_dict()}, is_best, split, "{}".format(model_folder))
+    return acc,  np.argmax(y_test, axis=1) #score[-1], best_acc, best_score,y_pred_best, y_prob_best
 
 
 # if __name__ == '__main__':

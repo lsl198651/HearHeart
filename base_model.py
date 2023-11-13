@@ -57,7 +57,7 @@ class AudioClassifier(nn.Module):
         
         # wide features
         self.wide = nn.Linear(in_features=15, out_features=20)
-        self.lin = nn.Linear(in_features=84, out_features=3)
+        self.lin = nn.Linear(in_features=84, out_features=2)
         self.lin1 = nn.Linear(in_features=80, out_features=128)
         # Wrap the Convolutional Blocks
         self.conv = nn.Sequential(*conv_layers)

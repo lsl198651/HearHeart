@@ -69,10 +69,10 @@ def evaluate_patch(model, device, test_loader, loss_fn):
 			target_all.extend(target.cpu().numpy())
 			pred_all.append(predicted)
 			prob_all.append(prob_ave)
-		y_test = np.zeros((total, 3))
-		y_pred = np.zeros((total, 3))
+		y_test = np.zeros((total, 2))
+		y_pred = np.zeros((total, 2))
 		for i in range(total):
 			y_test[i, target_all[i]] = 1
 			y_pred[i, pred_all[i]] = 1
 		score = calculate_murmur_scores(y_test, np.asarray(prob_all), y_pred)
-	return loss_avg(), 100 * correct / total, score, y_test, y_pred, prob_all
+	return loss_avg(),  correct / total, score, y_test, y_pred, prob_all

@@ -120,7 +120,7 @@ class AudioUtil():
     @staticmethod
     def get_spec(aud):
         sig, sr = aud
-        spectral_centroids = librosa.feature.spectral_centroid(sig.numpy(), sr=4000, n_fft=200, hop_length=100)[0]
+        spectral_centroids = librosa.feature.spectral_centroid(y=sig.numpy(), sr=4000, n_fft=200, hop_length=100)[0]
         spec_bw = librosa.feature.spectral_bandwidth(y=sig.numpy(), sr=4000, n_fft=200, hop_length=100)
         return np.mean(spectral_centroids) / 2000, np.std(spectral_centroids)/2000, np.mean(spec_bw)/2000, np.std(spec_bw)/2000
 
