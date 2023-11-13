@@ -152,7 +152,7 @@ def train_challenge_model(data_folder, model_folder, verbose):
         # val_ds = SoundDS_val(df_val, data_path=data_folder, mode='Val')
         train_ds = SoundDS(df_tr, data_path=data_folder, mode='train', df_wide=df_wide_tr)
         val_ds = SoundDS_Patch(df_val, data_path=data_folder, df_wide=df_wide_val)
-        train_loader = torch.utils.data.DataLoader(train_ds, batch_size=24, shuffle=True)
+        train_loader = torch.utils.data.DataLoader(train_ds, batch_size=128, shuffle=True)
         val_loader = torch.utils.data.DataLoader(val_ds, batch_size=1, shuffle=False)
 
         # Train the model.
@@ -258,7 +258,7 @@ def run_challenge_model(model, data, recordings, verbose):
     murmur_models = model['murmur_models']
     # outcome_models = model['outcome_models']
 
-    murmur_classes = ['Present', 'Unknown', 'Absent']
+    murmur_classes = ['Present',  'Absent']#'Unknown',
     num_record = len(recordings)
     # get the age, sex, and pregnancy features
     # age, gender, pregnancy = get_features_mod(data)
@@ -266,7 +266,7 @@ def run_challenge_model(model, data, recordings, verbose):
     # wide_fea = np.array((age, gender, pregnancy))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     labels_ens = np.zeros((5, ))
-    probabilities_ens = np.zeros((5, 3))
+    probabilities_ens = np.zeros((5, 2))
     for i in range(5):
         model_tmp = murmur_models[i]
         model_tmp.eval()
@@ -300,10 +300,10 @@ def run_challenge_model(model, data, recordings, verbose):
         # combining results from all the recordings
         prob_all = np.asarray(prob_all)
         pred_all = np.asarray(pred_all)
-        if np.all(pred_all == 2):
-            labels_ens[i] = 2
-            probabilities_ens[i, :] = np.mean(prob_all, axis=0)
-        elif np.any(pred_all == 0):
+        # if np.all(pred_all == 2):
+        #     labels_ens[i] = 2
+        #     probabilities_ens[i, :] = np.mean(prob_all, axis=0)
+        if np.any(pred_all == 0):
             labels_ens[i] = 0
             probabilities_ens[i, :] = np.mean(prob_all[np.where(pred_all == 0)[0], :], axis=0)
         else:
@@ -311,10 +311,10 @@ def run_challenge_model(model, data, recordings, verbose):
             probabilities_ens[i, :] = np.mean(prob_all, axis=0)
 
     # voting for the final label, the most voted as label and also the corresponding probability to calculate mean
-    voting = np.zeros((3, ))
+    voting = np.zeros((2, ))
     voting[0] = np.count_nonzero(labels_ens == 0)
     voting[1] = np.count_nonzero(labels_ens == 1)
-    voting[2] = np.count_nonzero(labels_ens == 2)
+    # voting[2] = np.count_nonzero(labels_ens == 2)
     label = np.argmax(voting, axis=0)  # when the count are the same, take as positive or unknown
 
     prob_murmur = np.mean(probabilities_ens[np.where(labels_ens == label)[0], :], axis=0)
@@ -324,36 +324,36 @@ def run_challenge_model(model, data, recordings, verbose):
     idx = label
     labels_murmur[idx] = 1
 
-    # clinical outcome classification
-    outcome_classes = ['Abnormal', 'Normal']
+    # # clinical outcome classification
+    # outcome_classes = ['Abnormal', 'Normal']
 
-    # Load features.
-    features = get_features(data, recordings)
-    features = features.reshape(1, -1)
+    # # Load features.
+    # features = get_features(data, recordings)
+    # features = features.reshape(1, -1)
 
-    # 5 folds classifiers
-    outcome_prob_all = []
-    for i in range(5):
-        outcome_model_temp = outcome_models[i]
-        # load the model paramters
-        imputer = outcome_model_temp['imputer']
-        outcome_classifier = outcome_model_temp['outcome_classifier']
-        # Impute missing data.
-        features_temp = imputer.transform(features)
+    # # 5 folds classifiers
+    # outcome_prob_all = []
+    # for i in range(5):
+    #     outcome_model_temp = outcome_models[i]
+    #     # load the model paramters
+    #     imputer = outcome_model_temp['imputer']
+    #     outcome_classifier = outcome_model_temp['outcome_classifier']
+    #     # Impute missing data.
+    #     features_temp = imputer.transform(features)
 
-        outcome_prob = outcome_classifier.predict_proba(features_temp)
-        outcome_prob = np.asarray(outcome_prob, dtype=np.float32)[:, 0, 1]
-        outcome_prob_all.append(outcome_prob)
-    outcome_prob_all = np.asarray(outcome_prob_all)
-    prob_outcome_ave = np.mean(outcome_prob_all, axis=0)
-    labels_outcome = np.zeros(len(outcome_classes), dtype=np.int_)
-    idx = np.argmax(prob_outcome_ave)
-    labels_outcome[idx] = 1
+    #     outcome_prob = outcome_classifier.predict_proba(features_temp)
+    #     outcome_prob = np.asarray(outcome_prob, dtype=np.float32)[:, 0, 1]
+    #     outcome_prob_all.append(outcome_prob)
+    # outcome_prob_all = np.asarray(outcome_prob_all)
+    # prob_outcome_ave = np.mean(outcome_prob_all, axis=0)
+    # labels_outcome = np.zeros(len(outcome_classes), dtype=np.int_)
+    # idx = np.argmax(prob_outcome_ave)
+    # labels_outcome[idx] = 1
 
     # Concatenate classes, labels, and probabilities.
-    classes = murmur_classes + outcome_classes
-    labels = np.concatenate((labels_murmur, labels_outcome))
-    probabilities = np.concatenate((prob_murmur, prob_outcome_ave))
+    classes = murmur_classes #+ outcome_classes
+    labels = labels_murmur#np.concatenate((labels_murmur, labels_outcome))
+    probabilities =prob_murmur#np.concatenate((prob_murmur, prob_outcome_ave))
 
     return classes, labels, probabilities
 
