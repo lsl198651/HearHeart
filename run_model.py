@@ -12,7 +12,7 @@
 import numpy as np, os, sys
 from helper_code import *
 from team_code import load_challenge_model, run_challenge_model
-
+from sklearn.model_selection import StratifiedKFold
 # Run model.
 def run_model(model_folder, data_folder, output_folder, allow_failures, verbose):
     # Load models.
@@ -34,32 +34,35 @@ def run_model(model_folder, data_folder, output_folder, allow_failures, verbose)
     # Run the team's model on the Challenge data.
     if verbose >= 1:
         print('Running model on Challenge data...')
-
+    # 这里列出来所有文件名，分五折投票就行
+    kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=2022)
+    for i, (_, val_idx) in enumerate(kf.split(num_patient_files)):
+        patient_files_val = np.asarray(num_patient_files)[val_idx]
     # Iterate over the patient files.
-    for i in range(num_patient_files):
-        if verbose >= 2:
-            print('    {}/{}...'.format(i+1, num_patient_files))
+        for i in range(len(patient_files_val)):
+            # if verbose >= 2:
+            #     print('    {}/{}...'.format(i+1, num_patient_files))
 
-        patient_data = load_patient_data(patient_files[i])
-        recordings = load_recordings(data_folder, patient_data)
+            patient_data = load_patient_data(patient_files_val[i])
+            recordings = load_recordings(data_folder, patient_data)
 
-        # Allow or disallow the model to fail on parts of the data; helpful for debugging.
-        try:
-            classes, labels, probabilities = run_challenge_model(model, patient_data, recordings, verbose) ### Teams: Implement this function!!!
-        except:
-            if allow_failures:
-                if verbose >= 2:
-                    print('... failed.')
-                classes, labels, probabilities = list(), list(), list()
-            else:
-                raise
+            # Allow or disallow the model to fail on parts of the data; helpful for debugging.
+            try:
+                classes, labels, probabilities = run_challenge_model(model, patient_data, recordings, verbose) ### Teams: Implement this function!!!
+            except:
+                if allow_failures:
+                    if verbose >= 2:
+                        print('... failed.')
+                    classes, labels, probabilities = list(), list(), list()
+                else:
+                    raise
 
-        # Save Challenge outputs.
-        head, tail = os.path.split(patient_files[i])
-        root, extension = os.path.splitext(tail)
-        output_file = os.path.join(output_folder, root + '.csv')
-        patient_id = get_patient_id(patient_data)
-        save_challenge_outputs(output_file, patient_id, classes, labels, probabilities)
+            # Save Challenge outputs.
+            head, tail = os.path.split(patient_files[i])
+            root, extension = os.path.splitext(tail)
+            output_file = os.path.join(output_folder, root + '.csv')
+            patient_id = get_patient_id(patient_data)
+            save_challenge_outputs(output_file, patient_id, classes, labels, probabilities)
 
     if verbose >= 1:
         print('Done.')
