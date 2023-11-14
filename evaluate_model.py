@@ -155,7 +155,7 @@ def enforce_positives(outputs, classes, positive_class):
 
 # Compute macro AUROC and macro AUPRC.
 def compute_auc(labels, outputs):
-    num_patients, num_classes = np.shape(labels)
+    num_patients, num_classes = np.shape(outputs)
 
     # Compute and summarize the confusion matrices for each class across at distinct output values.
     auroc = np.zeros(num_classes)
@@ -173,8 +173,8 @@ def compute_auc(labels, outputs):
         fp = np.zeros(num_thresholds)
         fn = np.zeros(num_thresholds)
         tn = np.zeros(num_thresholds)
-        fn[0] = np.sum(labels[:, k] == 1)
-        tn[0] = np.sum(labels[:, k] == 0)
+        fn[0] = np.sum(labels[ k] == 1)
+        tn[0] = np.sum(labels[k] == 0)
 
         # Find the indices that result in sorted output values.
         idx = np.argsort(outputs[:, k])[::-1]
@@ -302,7 +302,7 @@ def compute_f_measure(labels, outputs):
 def compute_accuracy(labels, outputs):
     # Compute confusion matrix.
     assert(np.shape(labels) == np.shape(outputs))
-    num_patients, num_classes = np.shape(labels)
+    num_patients, num_classes = np.shape(outputs)
     A = compute_confusion_matrix(labels, outputs)
 
     # Compute accuracy.
