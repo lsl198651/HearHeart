@@ -589,7 +589,7 @@ def train_and_evaluate(model, device, train_loader, val_loader, optimizer, loss_
         print('==================')
         print(f"Epoch {epoch}/{n_epoch}\n Loss:{avg_loss:.3f}\n Train Acc:{acc_tr:.3%} ")#Train AUC : {} 
 
-        print(f" Valid Acc:{acc:.3%} \n Valid AUC :{roc:.3f} \n Valid auprc : {prc:.3f}\n Valid f1 : {f1:.4f} Valid Loss:{loss:.3f} ")
+        print(f" Valid Acc:{acc:.3%} \n Valid AUC :{roc:.3f} \n Valid auprc : {prc:.3f}\n Valid f1 : {f1:.4f}\n Valid Loss:{loss:.3f} ")
         is_best = (best_acc < acc)
         if is_best:
             best_auroc=roc
