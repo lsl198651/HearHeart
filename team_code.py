@@ -253,10 +253,10 @@ def load_challenge_model(model_folder, verbose):
         model = utils.load_checkpoint(check_path, model)
         mumrmur_models.append(model)
 
-        # load the outcome classifiers
-        filename = os.path.join(model_folder, 'outcome_model_{}.sav'.format(i))
-        outcome_models.append(joblib.load(filename))
-    models = {'murmur_models': mumrmur_models, 'outcome_models': outcome_models}
+        # # load the outcome classifiers
+        # filename = os.path.join(model_folder, 'outcome_model_{}.sav'.format(i))
+        # outcome_models.append(joblib.load(filename))
+    models = {'murmur_models': mumrmur_models}#, 'outcome_models': outcome_models
     return models
 
 
@@ -588,7 +588,7 @@ def train_and_evaluate(model, device, train_loader, val_loader, optimizer, loss_
         if is_best:
             best_auroc=auc
             best_auprc=auprc
-            best_acc = best_acc
+            best_acc = acc
             
             # y_pred_best = np.argmax(y_pred, axis=1)
             # y_prob_best = y_prob
@@ -604,7 +604,7 @@ def train_and_evaluate(model, device, train_loader, val_loader, optimizer, loss_
         utils.save_checkpoint({"epoch": epoch + 1,
                                "model": model.state_dict(),
                                "optimizer": optimizer.state_dict()}, is_best, split, "{}".format(model_folder))
-    return acc,  best_auroc,best_auprc#score[-1], best_acc, best_score,y_pred_best, y_prob_best
+    return best_acc,  best_auroc,best_auprc#score[-1], best_acc, best_score,y_pred_best, y_prob_best
 
 
 # if __name__ == '__main__':

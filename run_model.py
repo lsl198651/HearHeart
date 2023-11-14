@@ -36,8 +36,8 @@ def run_model(model_folder, data_folder, output_folder, allow_failures, verbose)
         print('Running model on Challenge data...')
     # 这里列出来所有文件名，分五折投票就行
     kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=2022)
-    for i, (_, val_idx) in enumerate(kf.split(num_patient_files)):
-        patient_files_val = np.asarray(num_patient_files)[val_idx]
+    for i, (_, val_idx) in enumerate(kf.split(patient_files)):
+        patient_files_val = np.asarray(patient_files)[val_idx]
     # Iterate over the patient files.
         for i in range(len(patient_files_val)):
             # if verbose >= 2:
@@ -69,21 +69,23 @@ def run_model(model_folder, data_folder, output_folder, allow_failures, verbose)
 
 if __name__ == '__main__':
     # Parse the arguments.
-    if not (len(sys.argv) == 4 or len(sys.argv) == 5):
-        raise Exception('Include the model, data, and output folders as arguments, e.g., python run_model.py model data outputs.')
+    # if not (len(sys.argv) == 4 or len(sys.argv) == 5):
+    #     raise Exception('Include the model, data, and output folders as arguments, e.g., python run_model.py model data outputs.')
 
     # Define the model, data, and output folders.
-    model_folder = sys.argv[1]
-    data_folder = sys.argv[2]
-    output_folder = sys.argv[3]
+    # model_folder = sys.argv[1]
+    # data_folder = sys.argv[2]
+    data_folder=r'D:\Shilong\murmur\01_dataset\all_data\training_data'
+    model_folder=r'D:\Shilong\murmur\00_code\HearHeart\model'
+    output_folder = r'D:\Shilong\murmur\00_code\HearHeart\output'
 
     # Allow or disallow the model to fail on parts of the data; helpful for debugging.
     allow_failures = False
 
     # Change the level of verbosity; helpful for debugging.
-    if len(sys.argv)==5 and is_integer(sys.argv[4]):
-        verbose = int(sys.argv[4])
-    else:
-        verbose = 1
+    # if len(sys.argv)==5 and is_integer(sys.argv[4]):
+    #     verbose = int(sys.argv[4])
+    # else:
+    #     verbose = 1
 
-    run_model(model_folder, data_folder, output_folder, allow_failures, verbose)
+    run_model(model_folder, data_folder, output_folder, allow_failures, verbose=2)
