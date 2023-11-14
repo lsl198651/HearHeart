@@ -203,6 +203,8 @@ class SoundDS(Dataset):
         audio_file = os.path.join(self.data_path, self.df.iloc[idx, 1])
         # Get the Class ID
         class_id = self.df.iloc[idx, 2]
+        # add-lsl
+
 
         aud = AudioUtil.open(audio_file)
         # Some sounds have a higher sample rate, or fewer channels compared to the
@@ -231,7 +233,7 @@ class SoundDS(Dataset):
         # wide_fea_temp = np.append(wide_fea, zcr_ratio)
         # wide_fea_all = torch.Tensor(np.append(wide_fea_temp, zcr_std))
         wide_fea = self.df_wide.iloc[idx, :].values
-        wide_fea_all = torch.Tensor(np.append(wide_fea, fea))
+        wide_fea_all = torch.Tensor(np.append(wide_fea, fea))#9+6=15个特征
         sgram = AudioUtil.spectro_gram(new_audio, n_mels=128, n_fft=512, win_len=50, hop_len=25)
 
         if self.mode == 'train':
@@ -406,6 +408,7 @@ class SoundDS_Patch(Dataset):
         audio_file = os.path.join(self.data_path, self.df.iloc[idx, 1])
         # Get the Class ID
         class_id = self.df.iloc[idx, 2]
+        patient_id =self.df.iloc[idx, 0]
 
         aud = AudioUtil.open(audio_file)
         # Some sounds have a higher sample rate, or fewer channels compared to the
@@ -460,10 +463,11 @@ class SoundDS_Patch(Dataset):
                     # wide_fea_all_temp = torch.Tensor(np.append(wide_fea_temp, zcr_std_temp))
                     wide_fea_all_temp = torch.Tensor(np.append(wide_fea_temp, fea))
                     # wide_fea_all_temp = torch.Tensor(np.append(wide_fea_temp, zcr_ratio_temp))
+                    # log-mel
                     sgram_temp = AudioUtil.spectro_gram(audio_seg, n_mels=128, n_fft=512, win_len=50, hop_len=25)
                     # sgram.append(torch.tensor(mono_to_color(sgram_temp.numpy())))
                     sgram.append(sgram_temp)
                     # sgram.append(torch.cat((sgram_temp, sgram_temp, sgram_temp), axis = 0))
                     wide_fea_all.append(wide_fea_all_temp)
 
-        return (sgram, wide_fea_all, class_id)
+        return (sgram, wide_fea_all, class_id,patient_id)

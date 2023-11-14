@@ -3,7 +3,7 @@ from evaluation import calculate_murmur_scores
 import numpy as np
 import utils
 from evaluate_model import compute_auc, compute_accuracy
-from torcheval.metrics.functional import binary_auprc, binary_auroc,binary_accuracy
+from torcheval.metrics.functional import binary_auprc, binary_auroc,binary_accuracy,binary_f1_score
 classes = ['Present',  'Absent']
 
 
@@ -45,22 +45,36 @@ def evaluate_patch(model, device, test_loader, loss_fn):
 	correct = 0
 	total = 0
 	model.eval()
+	target_seg=[]
 	target_all = []
 	labels_all=[]
 	pred_all = []
 	prob_all = []
 	labels_murmur_all=[]
+	patient_pred={}
+	patient_prob={}
+	patient_target={}
 	murmur_classes = ['Present',  'Absent']#'Unknown',
 	loss_avg = utils.RunningAverage()
 	labels_ens = np.zeros(1)
 	probabilities_ens = np.zeros((2))
 	with torch.no_grad():
 		for batch_idx, data in enumerate(test_loader):
-			inputs = data[0]
+			inputs = data[0]#[1,1,128,601]
 			inputs1 = data[1]
 			# target = data[1].squeeze(1).to(device)
 			# target = data[1].to(device)
 			target = data[2].to(device)
+			patient_id=data[3]
+			if not patient_id in patient_pred.keys():
+				patient_pred[patient_id]=[]
+				patient_prob[patient_id]=[]
+			else:
+				pass
+			if not patient_id in patient_target.keys():
+				patient_target[patient_id]=target
+			else:
+				pass
 			prob = []
 			for idx, input in enumerate(inputs):
 				outputs = model(input.to(device), inputs1[idx].to(device))
@@ -73,14 +87,16 @@ def evaluate_patch(model, device, test_loader, loss_fn):
 			predicted = np.argmax(prob_ave)
 			total += target.size(0)
 			correct += (predicted == target).sum().item()
-			target_all.extend(target.cpu().numpy())
-			pred_all.append(predicted)
-			prob_all.append(prob_ave)
-			prob_all_arr = np.asarray(prob_all)
-			pred_all_arr = np.asarray(pred_all)
-			# if np.all(pred_all == 2):
-			#     labels_ens[i] = 2
-			#     probabilities_ens[i, :] = np.mean(prob_all, axis=0)
+			target_seg.extend(target.cpu().numpy())
+			pred_all.append(predicted)#预测出来的标签
+			prob_all.append(prob_ave)#0和1的概率
+			patient_pred[patient_id].append(predicted)
+			patient_prob[patient_id].append(prob_ave)
+		
+		for id,preds in patient_pred.items():			
+			prob_all_arr = np.asarray(patient_prob[id])
+			pred_all_arr = np.asarray(preds)
+			target_p=patient_target[id]
 			if np.any(pred_all_arr == 0):
 				labels_ens = 0
 				probabilities_ens= np.mean(prob_all_arr[np.where(pred_all_arr == 0)[0], :], axis=0)
@@ -94,30 +110,18 @@ def evaluate_patch(model, device, test_loader, loss_fn):
 			voting[1] = np.count_nonzero(labels_ens == 1)
 			# voting[2] = np.count_nonzero(labels_ens == 2)
 			label = np.argmax(voting, axis=0)  # when the count are the same, take as positive or unknown
+			target_all.append(target_p)
 			labels_all.append(label)
-			# prob_murmur = np.mean(probabilities_ens[np.where(labels_ens == label)[0]], axis=0)
-
-			# # convert label to one-hot vector
-			# labels_murmur = np.zeros(len(murmur_classes), dtype=np.int_)
-			# idx = label
-			# labels_murmur[idx] = 1
-			labels_murmur_all.append(label)
-		y_test = np.zeros((total, 2))
-		y_pred = np.zeros((total, 2))
-		for i in range(total):
-			y_test[i, target_all[i]] = 1
-			y_pred[i, pred_all[i]] = 1
-		score = calculate_murmur_scores(y_test, np.asarray(prob_all), y_pred)
-	# labels_murmur_all=np.asarray(labels_murmur_all)
-
-	# murmur_auroc, murmur_auprc, murmur_auroc_classes, murmur_auprc_classes = compute_auc(target_all, labels_murmur_all)
-	# murmur_accuracy, murmur_accuracy_classes=compute_accuracy(target_all,labels_murmur)
-	labels_murmur_all,target_all=torch.tensor(labels_murmur_all),torch.tensor(target_all)
-	prc=binary_auprc(labels_murmur_all,target_all)
-	roc=binary_auroc(labels_murmur_all,target_all)
-	acc=binary_accuracy(labels_murmur_all,target_all)
-	print('patient-wise')
-	print(f'murmur_auroc:{roc:.3f}\n murmur_auprc{prc:.3f}')
-	print(f'murmur_accuracy{acc:.3%}')
-
-	return loss_avg(),  correct / total,score# , prob_all y_test, y_pred,
+	labels_patients,target_patients=torch.tensor(labels_all),torch.tensor(target_all),
+	prc=binary_auprc(labels_patients,target_patients)
+	roc=binary_auroc(labels_patients,target_patients)
+	acc=binary_accuracy(labels_patients,target_patients)
+	f1=binary_f1_score(labels_patients,target_patients)
+	labels_segm,target_segm=torch.tensor(pred_all),torch.tensor(target_seg),
+	prc_seg=binary_auprc(labels_segm,target_segm)
+	roc_seg=binary_auroc(labels_segm,target_segm)
+	acc_seg=binary_accuracy(labels_segm,target_segm)
+	f1_seg=binary_f1_score(labels_segm,target_segm)
+	print(f'----segments_wise---- \n acc={acc_seg:.3%}\n roc:{roc_seg:.3f}\n prc:{prc_seg:.3f}\n f1:{f1_seg:.3f}')
+	# 现在还缺一个segments-wise的性能指标
+	return loss_avg(),acc,roc,prc,f1

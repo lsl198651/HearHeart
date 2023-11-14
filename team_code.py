@@ -104,9 +104,9 @@ def train_challenge_model(data_folder, model_folder, verbose):
 
             # repeating the pID and labels
             for j in range(len(curr_recording_files)):
-                labels_tr.append(labels[-1])
-                pIDs_tr.append(pID)
-                wide_fea_tr.append(wide_temp)
+                labels_tr.append(labels[-1])#2890个label
+                pIDs_tr.append(pID)#2890个pid，每个id对应一个wav
+                wide_fea_tr.append(wide_temp)#2890
 
     #     # extract the outcome label and the features
     #     current_recordings = load_recordings(data_folder, current_patient_data)
@@ -124,29 +124,31 @@ def train_challenge_model(data_folder, model_folder, verbose):
     # generate training df contains only the filtered training samples
     df = pd.DataFrame()
     df['pID'] = pIDs_tr
-    df['relative_path'] = recording_files_tr
+    df['relative_path'] = recording_files_tr# 每个wav的文件名
     df['label'] = labels_tr
     # df['age'] = age_tr
     # df['gender'] = gender_tr
     # df['pregnancy'] = pregnancy_tr
     # df_wide = pd.concat([pd.get_dummies(df['age']), pd.get_dummies(df['gender']), pd.get_dummies(df['pregnancy'])], axis=1)
-    df_wide = pd.DataFrame(wide_fea_tr)
+    df_wide = pd.DataFrame(wide_fea_tr)#每个wav对应的人口特征
     # 5 folds cross-validation, stratified split according to labels and put
     kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=2022)
     acc_list=[]
     roc_list=[]
     auprc_list=[]
+    f1_list=[]
     for i, (train_idx, val_idx) in enumerate(kf.split(pIDs, labels)):
         print('Fold {} training started'.format(str(i)))
         # df_result_temp = pd.DataFrame()
         # get the training patients and validation patients
-        pID_train = np.asarray(pIDs)[train_idx]
-        pID_val = np.asarray(pIDs)[val_idx]
+        pID_train = np.asarray(pIDs)[train_idx]#699个
+        pID_val = np.asarray(pIDs)[val_idx]#175个
 
         # Extract corresponding df for training and testing
-        df_tr = df.loc[df['pID'].isin(pID_train), df.columns]
-        df_val = df.loc[df['pID'].isin(pID_val), df.columns]
-        
+        # 【id wav_name label 】
+        df_tr = df.loc[df['pID'].isin(pID_train), df.columns]# 2312*3
+        df_val = df.loc[df['pID'].isin(pID_val), df.columns]# 578*3 
+        # 人口特征
         df_wide_tr = df_wide.loc[df['pID'].isin(pID_train), df_wide.columns]
         df_wide_val = df_wide.loc[df['pID'].isin(pID_val), df_wide.columns]
 
@@ -167,8 +169,8 @@ def train_challenge_model(data_folder, model_folder, verbose):
         # nSamples = df_tr['label'].value_counts()
         # nSamples = nSamples.sort_index()
         # normedWeights = [1 - (x / sum(nSamples)) for x in nSamples]
-        normedWeights = [5, 3, 1]  # set according to the challenge metrics
-        normedWeights = torch.FloatTensor(normedWeights).to(device)
+        # normedWeights = [5, 3, 1]  # set according to the challenge metrics
+        # normedWeights = torch.FloatTensor(normedWeights).to(device)
         loss_fn = nn.CrossEntropyLoss()#weight=normedWeights
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-3)
         scheduler = True
@@ -179,14 +181,16 @@ def train_challenge_model(data_folder, model_folder, verbose):
             scheduler = None
         # writer = SummaryWriter(f'C:/Users/huilu/Office/Projects/PCG/runs')
         # ,score, best_acc, best_score, y_pred, y_pro
-        acc, auroc,auprc = train_and_evaluate(model, device,train_loader, val_loader,optimizer, loss_fn, i,model_folder, scheduler)
+        acc, auroc,auprc,f1measure = train_and_evaluate(model, device,train_loader, val_loader,optimizer, loss_fn, i,model_folder, scheduler)
         print(f'fold{i}: Acc:{acc:.3%},auroc:{auroc},auprc:{auprc}')
         acc_list.append(acc)
         roc_list.append(auroc)
         auprc_list.append(auprc)
+        f1_list.append(f1measure)
     print(acc_list)
     print(roc_list)
     print(auprc_list)
+    print(f1_list)
 
     # clinical outcome classification
     # random_state = 6789  # Random state; set for reproducibility.
@@ -533,10 +537,10 @@ def train(model, device, data_loader, optimizer, loss_fn):
     prob_all = []
     with tqdm(total=len(data_loader)) as t:
         for batch_idx, data in enumerate(data_loader):
-            inputs1 = data[0].to(device)
-            inputs2 = data[1].to(device)
+            inputs1 = data[0].to(device)# 128*601的谱
+            inputs2 = data[1].to(device)# 人口信息
             # target = data[1].squeeze(1).to(device)
-            target = data[2].to(device)
+            target = data[2].to(device)# target
 
             # outputs = model(inputs)
             outputs = model(inputs1, inputs2)
@@ -569,42 +573,33 @@ def train_and_evaluate(model, device, train_loader, val_loader, optimizer, loss_
     best_acc = 0.0
     best_auroc = 0
     best_auprc = 0
-    y_pred_best = []
-    y_prob_best = []
+    best_f1=0
+    # y_pred_best = []
+    # y_prob_best = []
     n_stop = 20  # set the early stopping epochs as 10
     n_epoch = 50
     epochs_no_improve = 0
     for epoch in range(n_epoch):
         avg_loss, acc_tr= train(model, device, train_loader, optimizer, loss_fn)#, auc_score_tr 
         # loss, acc, score, y_test, y_pred, y_prob = validate.evaluate(model, device, val_loader, loss_fn)
-        loss, acc, score = validate.evaluate_patch(model, device, val_loader, loss_fn)#, y_test, y_pred, y_prob
+        loss,acc,roc,prc,f1 = validate.evaluate_patch(model, device, val_loader, loss_fn)#, y_test, y_pred, y_prob
         # auc = roc_auc_score(np.argmax(y_test, axis=1), y_prob, average='macro', multi_class='ovr')
-        auc = score[1]
-        auprc=score[2]
+        # auc = score[1]
+        # auprc=score[2]
+        print('==================')
         print(f"Epoch {epoch}/{n_epoch}\n Loss:{avg_loss:.3f}\n Train Acc:{acc_tr:.3%} ")#Train AUC : {} 
 
-        print(f"Epoch {epoch}/{n_epoch}\n Valid Loss:{loss:.3f} \n Valid Acc:{acc:.3%} \n Valid AUC : {auc:.3f} \n Valid auprc : {auprc:.3f} ")
+        print(f" Valid Acc:{acc:.3%} \n Valid AUC :{roc:.3f} \n Valid auprc : {prc:.3f}\n Valid f1 : {f1:.4f} Valid Loss:{loss:.3f} ")
         is_best = (best_acc < acc)
         if is_best:
-            best_auroc=auc
-            best_auprc=auprc
+            best_auroc=roc
+            best_auprc=prc
             best_acc = acc
-            
-            # y_pred_best = np.argmax(y_pred, axis=1)
-            # y_prob_best = y_prob
-            # epochs_no_improve = 0
-        # else:
-        #     epochs_no_improve += 1
-        #     if epochs_no_improve == n_stop:
-        #         print('Early stopping')
-        #         break
-        # if scheduler:
-        #     scheduler.step()
-
+            best_f1=f1          
         utils.save_checkpoint({"epoch": epoch + 1,
                                "model": model.state_dict(),
                                "optimizer": optimizer.state_dict()}, is_best, split, "{}".format(model_folder))
-    return best_acc,  best_auroc,best_auprc#score[-1], best_acc, best_score,y_pred_best, y_prob_best
+    return best_acc,  best_auroc,best_auprc,best_f1#score[-1], best_acc, best_score,y_pred_best, y_prob_best
 
 
 # if __name__ == '__main__':
