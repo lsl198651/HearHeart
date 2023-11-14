@@ -98,25 +98,26 @@ def evaluate_patch(model, device, test_loader, loss_fn):
 			# prob_murmur = np.mean(probabilities_ens[np.where(labels_ens == label)[0]], axis=0)
 
 			# # convert label to one-hot vector
-			labels_murmur = np.zeros(len(murmur_classes), dtype=np.int_)
-			idx = label
-			labels_murmur[idx] = 1
-			labels_murmur_all.append(labels_murmur)
-		# y_test = np.zeros((total, 2))
-		# y_pred = np.zeros((total, 2))
-		# for i in range(total):
-		# 	y_test[i, target_all[i]] = 1
-		# 	y_pred[i, pred_all[i]] = 1
-		# score = calculate_murmur_scores(y_test, np.asarray(prob_all), y_pred)
+			# labels_murmur = np.zeros(len(murmur_classes), dtype=np.int_)
+			# idx = label
+			# labels_murmur[idx] = 1
+			labels_murmur_all.append(label)
+		y_test = np.zeros((total, 2))
+		y_pred = np.zeros((total, 2))
+		for i in range(total):
+			y_test[i, target_all[i]] = 1
+			y_pred[i, pred_all[i]] = 1
+		score = calculate_murmur_scores(y_test, np.asarray(prob_all), y_pred)
 	# labels_murmur_all=np.asarray(labels_murmur_all)
 
 	# murmur_auroc, murmur_auprc, murmur_auroc_classes, murmur_auprc_classes = compute_auc(target_all, labels_murmur_all)
 	# murmur_accuracy, murmur_accuracy_classes=compute_accuracy(target_all,labels_murmur)
+	labels_murmur_all,target_all=torch.tensor(labels_murmur_all),torch.tensor(target_all)
 	prc=binary_auprc(labels_murmur_all,target_all)
 	roc=binary_auroc(labels_murmur_all,target_all)
 	acc=binary_accuracy(labels_murmur_all,target_all)
-	print('patient')
-	print(f'murmur_auroc:{roc:.3f},murmur_auprc{prc:.3f}')
+	print('patient-wise')
+	print(f'murmur_auroc:{roc:.3f}\n murmur_auprc{prc:.3f}')
 	print(f'murmur_accuracy{acc:.3%}')
 
-	return loss_avg(),  correct / total, prob_all,# score, y_test, y_pred,
+	return loss_avg(),  correct / total,score# , prob_all y_test, y_pred,

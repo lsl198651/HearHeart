@@ -577,7 +577,7 @@ def train_and_evaluate(model, device, train_loader, val_loader, optimizer, loss_
     for epoch in range(n_epoch):
         avg_loss, acc_tr= train(model, device, train_loader, optimizer, loss_fn)#, auc_score_tr 
         # loss, acc, score, y_test, y_pred, y_prob = validate.evaluate(model, device, val_loader, loss_fn)
-        loss, acc, score, y_test, y_pred, y_prob = validate.evaluate_patch(model, device, val_loader, loss_fn)
+        loss, acc, score = validate.evaluate_patch(model, device, val_loader, loss_fn)#, y_test, y_pred, y_prob
         # auc = roc_auc_score(np.argmax(y_test, axis=1), y_prob, average='macro', multi_class='ovr')
         auc = score[1]
         auprc=score[2]
