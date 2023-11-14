@@ -577,7 +577,7 @@ def train_and_evaluate(model, device, train_loader, val_loader, optimizer, loss_
     # y_pred_best = []
     # y_prob_best = []
     n_stop = 20  # set the early stopping epochs as 10
-    n_epoch = 50
+    n_epoch = 100
     epochs_no_improve = 0
     for epoch in range(n_epoch):
         avg_loss, acc_tr= train(model, device, train_loader, optimizer, loss_fn)#, auc_score_tr 
