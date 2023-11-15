@@ -535,7 +535,7 @@ def train(model, device, data_loader, optimizer, loss_fn):
     total_prediction = 0
     target_all = []
     prob_all = []
-    with tqdm(total=len(data_loader)) :
+    with tqdm(total=len(data_loader) )as t :
         for batch_idx, data in enumerate(data_loader):
             inputs1 = data[0].to(device)# 128*601的谱
             inputs2 = data[1].to(device)# 人口信息
@@ -553,7 +553,7 @@ def train(model, device, data_loader, optimizer, loss_fn):
             loss_avg.update(loss.item())
 
             # t.set_postfix(loss='{:05.3f}'.format(loss_avg()))
-            # t.update()
+            t.update()
 
             # Get the predicted class with the highest score
             _, prediction = torch.max(outputs, 1)
