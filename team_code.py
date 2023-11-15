@@ -132,7 +132,7 @@ def train_challenge_model(data_folder, model_folder, verbose):
     # df_wide = pd.concat([pd.get_dummies(df['age']), pd.get_dummies(df['gender']), pd.get_dummies(df['pregnancy'])], axis=1)
     df_wide = pd.DataFrame(wide_fea_tr)#每个wav对应的人口特征
     # 5 folds cross-validation, stratified split according to labels and put
-    kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=2022)
+    kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=2022)#
     acc_list=[]
     roc_list=[]
     auprc_list=[]
