@@ -118,13 +118,13 @@ def evaluate_patch(model, device, test_loader, loss_fn):
 	acc=binary_accuracy(labels_patients,target_patients)
 	f1=binary_f1_score(labels_patients,target_patients)
 	cm=binary_confusion_matrix(labels_patients,target_patients)
-	labels_segm,target_segm=torch.tensor(pred_all),torch.tensor(target_seg),
-	prc_seg=binary_auprc(labels_segm,target_segm)
-	roc_seg=binary_auroc(labels_segm,target_segm)
-	acc_seg=binary_accuracy(labels_segm,target_segm)
-	f1_seg=binary_f1_score(labels_segm,target_segm)
-	confusion_matrix=binary_confusion_matrix(labels_segm,target_segm)
-	print(f'----segments_wise---- \n acc={acc_seg:.3%}\n roc:{roc_seg:.3f}\n prc:{prc_seg:.3f}\n f1:{f1_seg:.3f}')
-	print(confusion_matrix)
+	# labels_segm,target_segm=torch.tensor(pred_all),torch.tensor(target_seg),
+	# prc_seg=binary_auprc(labels_segm,target_segm)
+	# roc_seg=binary_auroc(labels_segm,target_segm)
+	# acc_seg=binary_accuracy(labels_segm,target_segm)
+	# f1_seg=binary_f1_score(labels_segm,target_segm)
+	# confusion_matrix=binary_confusion_matrix(labels_segm,target_segm)
+	# print(f'----segments_wise---- \n acc={acc_seg:.3%}\n roc:{roc_seg:.3f}\n prc:{prc_seg:.3f}\n f1:{f1_seg:.3f}')
+	# print(confusion_matrix)
 	# 现在还缺一个segments-wise的性能指标
 	return loss_avg(),acc,roc,prc,f1,cm
