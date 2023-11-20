@@ -52,7 +52,7 @@ def train_challenge_model(data_folder, model_folder, verbose):
     # Create a folder for the model if it does not already exist.
     os.makedirs(model_folder, exist_ok=True)
 
-    classes = ['Present','Absent']
+    classes = ['Absent','Present']
     num_classes = len(classes)
 
     # Extract the features and labels.
@@ -161,7 +161,7 @@ def train_challenge_model(data_folder, model_folder, verbose):
         # val_ds = SoundDS_val(df_val, data_path=data_folder, mode='Val')
         train_ds = SoundDS(df_tr, data_path=data_folder, mode='train', df_wide=df_wide_tr)
         val_ds = SoundDS_Patch(df_val, data_path=data_folder, df_wide=df_wide_val)
-        train_loader = torch.utils.data.DataLoader(train_ds, batch_size=128, shuffle=True)
+        train_loader = torch.utils.data.DataLoader(train_ds, batch_size=24, shuffle=True)
         val_loader = torch.utils.data.DataLoader(val_ds, batch_size=1, shuffle=False)
 
         # Train the model.
@@ -578,6 +578,7 @@ def train_and_evaluate(model, device, train_loader, val_loader, optimizer, loss_
     best_auroc = 0
     best_auprc = 0
     best_f1=0
+    best_cm=0
     # y_pred_best = []
     # y_prob_best = []
     n_stop = 20  # set the early stopping epochs as 10
@@ -586,20 +587,21 @@ def train_and_evaluate(model, device, train_loader, val_loader, optimizer, loss_
     for epoch in range(n_epoch):
         avg_loss, acc_tr= train(model, device, train_loader, optimizer, loss_fn)#, auc_score_tr 
         # loss, acc, score, y_test, y_pred, y_prob = validate.evaluate(model, device, val_loader, loss_fn)
-        loss,acc,roc,prc,f1 = validate.evaluate_patch(model, device, val_loader, loss_fn)#, y_test, y_pred, y_prob
+        loss,acc,roc,prc,f1,cm = validate.evaluate_patch(model, device, val_loader, loss_fn)#, y_test, y_pred, y_prob
         # auc = roc_auc_score(np.argmax(y_test, axis=1), y_prob, average='macro', multi_class='ovr')
         # auc = score[1]
         # auprc=score[2]
         print('==================')
         print(f"Epoch {epoch}/{n_epoch}\n Loss:{avg_loss:.3f}\n Train Acc:{acc_tr:.3%} ")#Train AUC : {} 
 
-        print(f" Valid Acc:{acc:.3%} \n Valid AUC :{roc:.3f} \n Valid auprc : {prc:.3f}\n Valid f1 : {f1:.4f}\n Valid Loss:{loss:.3f} ")
+        print(f" Valid Acc:{acc:.3%} \n Valid AUC :{roc:.3f} \n Valid auprc : {prc:.3f}\n Valid f1 : {f1:.4f}\n cm:{cm}\nValid Loss:{loss:.3f} ")
         is_best = (best_acc < acc)
         if is_best:
             best_auroc=roc
             best_auprc=prc
             best_acc = acc
-            best_f1=f1          
+            best_f1=f1  
+            best_cm=cm        
         utils.save_checkpoint({"epoch": epoch + 1,
                                "model": model.state_dict(),
                                "optimizer": optimizer.state_dict()}, is_best, split, "{}".format(model_folder))
