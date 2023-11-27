@@ -601,10 +601,16 @@ def train_and_evaluate(model, device, train_loader, val_loader, optimizer, loss_
             best_auprc=prc
             best_acc = acc
             best_f1=f1  
-            best_cm=cm        
-        utils.save_checkpoint({"epoch": epoch + 1,
-                               "model": model.state_dict(),
-                               "optimizer": optimizer.state_dict()}, is_best, split, "{}".format(model_folder))
+            best_cm=cm    
+            epochs_no_improve = 0    
+            utils.save_checkpoint({"epoch": epoch + 1,
+                                "model": model.state_dict(),
+                                "optimizer": optimizer.state_dict()}, is_best, split, "{}".format(model_folder))
+        else:
+            epochs_no_improve += 1
+            if epochs_no_improve == n_stop:
+                print('Early stopping')
+                break
     return best_acc,  best_auroc,best_auprc,best_f1#score[-1], best_acc, best_score,y_pred_best, y_prob_best
 
 
