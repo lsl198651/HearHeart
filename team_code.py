@@ -143,10 +143,10 @@ def train_challenge_model(data_folder, model_folder, verbose):
         # get the training patients and validation patients
         pID_train = np.asarray(pIDs)[train_idx]#699个
         pID_val = np.asarray(pIDs)[val_idx]#175个
-        pd.DataFrame(data=pID_train, index=None).to_csv(
-        f'train_fold{i}.csv', index=False, header=False)
-        pd.DataFrame(data=pID_val, index=None).to_csv(
-        f'test_fold{i}.csv', index=False, header=False)
+        # pd.DataFrame(data=pID_train, index=None).to_csv(
+        # f'train_fold{i}.csv', index=False, header=False)
+        # pd.DataFrame(data=pID_val, index=None).to_csv(
+        # f'test_fold{i}.csv', index=False, header=False)
 
         # Extract corresponding df for training and testing
         # 【id wav_name label 】
