@@ -287,7 +287,7 @@ class SoundDS_val(Dataset):
 class SoundDS_valPatch(Dataset):
     def __init__(self, recordings, wide_fea, patch=True):
         self.recordings = recordings
-        self.duration = 375  # set the duration as 15 s at first
+        self.duration = 15000  # set the duration as 15 s at first
         self.sr = 4000
         self.dur = 15
         self.hop_len = 7.5  # set the patch overlapping as 7.5 seconds
@@ -381,7 +381,7 @@ class SoundDS_Patch(Dataset):
         self.df = df
         self.df_wide = df_wide
         self.data_path = data_path
-        self.duration = 375
+        self.duration = 15000
         self.dur = 15 # set the duration as 15 s at first
         self.sr = 4000
         self.hop_len = 7.5  # set the patch overlapping as 10 seconds
