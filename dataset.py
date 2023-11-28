@@ -176,7 +176,7 @@ class SoundDS(Dataset):
     def __init__(self, df, data_path, mode, df_wide=None):
         self.df = df
         self.data_path = str(data_path)
-        self.duration = 300  # set the duration as 15 s at first
+        self.duration = 15000  # set the duration as 15 s at first
         self.dur = 15
         self.sr = 4000
         self.channel = 1
@@ -245,7 +245,7 @@ class SoundDS(Dataset):
 class SoundDS_val(Dataset):
     def __init__(self, recordings,  patch=False):
         self.recordings = recordings
-        self.duration = 375  # set the duration as 15 s at first
+        self.duration =15000  # set the duration as 15 s at first
         self.sr = 4000
         self.channel = 1
         self.shift_pct = 0.4
