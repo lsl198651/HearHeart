@@ -137,16 +137,17 @@ def train_challenge_model(data_folder, model_folder, verbose):
     roc_list=[]
     auprc_list=[]
     f1_list=[]
+    cm_list=[]
     for i, (train_idx, val_idx) in enumerate(kf.split(pIDs, labels)):
         print('Fold {} training started'.format(str(i)))
         # df_result_temp = pd.DataFrame()
         # get the training patients and validation patients
         pID_train = np.asarray(pIDs)[train_idx]#699个
         pID_val = np.asarray(pIDs)[val_idx]#175个
-        # pd.DataFrame(data=pID_train, index=None).to_csv(
-        # f'train_fold{i}.csv', index=False, header=False)
-        # pd.DataFrame(data=pID_val, index=None).to_csv(
-        # f'test_fold{i}.csv', index=False, header=False)
+        pd.DataFrame(data=pID_train, index=None).to_csv(
+        f'train_fold{i}.csv', index=False, header=False)
+        pd.DataFrame(data=pID_val, index=None).to_csv(
+        f'test_fold{i}.csv', index=False, header=False)
 
         # Extract corresponding df for training and testing
         # 【id wav_name label 】
@@ -185,16 +186,18 @@ def train_challenge_model(data_folder, model_folder, verbose):
             scheduler = None
         # writer = SummaryWriter(f'C:/Users/huilu/Office/Projects/PCG/runs')
         # ,score, best_acc, best_score, y_pred, y_pro
-        acc, auroc,auprc,f1measure = train_and_evaluate(model, device,train_loader, val_loader,optimizer, loss_fn, i,model_folder, scheduler)
+        acc, auroc,auprc,f1measure,cm = train_and_evaluate(model, device,train_loader, val_loader,optimizer, loss_fn, i,model_folder, scheduler)
         print(f'fold{i}: Acc:{acc:.3%},auroc:{auroc},auprc:{auprc}')
         acc_list.append(acc)
         roc_list.append(auroc)
         auprc_list.append(auprc)
         f1_list.append(f1measure)
+        cm_list.append(cm)
     print(acc_list)
     print(roc_list)
     print(auprc_list)
     print(f1_list)
+    print(cm_list)
 
     # clinical outcome classification
     # random_state = 6789  # Random state; set for reproducibility.
@@ -611,7 +614,7 @@ def train_and_evaluate(model, device, train_loader, val_loader, optimizer, loss_
             if epochs_no_improve == n_stop:
                 print('Early stopping')
                 break
-    return best_acc,  best_auroc,best_auprc,best_f1#score[-1], best_acc, best_score,y_pred_best, y_prob_best
+    return best_acc,  best_auroc,best_auprc,best_f1,best_cm    #score[-1], best_acc, best_score,y_pred_best, y_prob_best
 
 
 # if __name__ == '__main__':
