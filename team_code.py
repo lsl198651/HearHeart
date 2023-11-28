@@ -52,7 +52,7 @@ def train_challenge_model(data_folder, model_folder, verbose):
     # Create a folder for the model if it does not already exist.
     os.makedirs(model_folder, exist_ok=True)
 
-    classes = ['Present','Absent']
+    classes = ['Absent','Present']
     num_classes = len(classes)
 
     # Extract the features and labels.
@@ -174,7 +174,7 @@ def train_challenge_model(data_folder, model_folder, verbose):
         # nSamples = df_tr['label'].value_counts()
         # nSamples = nSamples.sort_index()
         # normedWeights = [1 - (x / sum(nSamples)) for x in nSamples]
-        # normedWeights = [5, 3, 1]  # set according to the challenge metrics
+        # normedWeights = [5, 1]  # set according to the challenge metrics
         # normedWeights = torch.FloatTensor(normedWeights).to(device)
         loss_fn = nn.CrossEntropyLoss()#weight=normedWeights
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-3)
@@ -198,6 +198,7 @@ def train_challenge_model(data_folder, model_folder, verbose):
     print(auprc_list)
     print(f1_list)
     print(cm_list)
+    print(f'Acc:{np.mean(acc_list):.3%}\n,auroc:{np.mean(roc_list)}\n,auprc:{np.mean(auprc_list)}\n,f1:{np.mean(f1_list)}')
 
     # clinical outcome classification
     # random_state = 6789  # Random state; set for reproducibility.
@@ -252,17 +253,17 @@ def train_challenge_model(data_folder, model_folder, verbose):
 
 # Load your trained model. This function is *required*. You should edit this function to add your code, but do *not* change the
 # arguments of this function.
-def load_challenge_model(model_folder, verbose):
+def load_challenge_model(model_folder, verbose,f):
     # load all the trained models into list
     mumrmur_models = []
-    outcome_models = []
+    # outcome_models = []
 
-    for i in range(5):
-        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-        model = AudioClassifier().to(device)
-        check_path = os.path.join(model_folder, 'model_best_{}.pth.tar'.format(i))
-        model = utils.load_checkpoint(check_path, model)
-        mumrmur_models.append(model)
+    # for i in range(5):
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+    model = AudioClassifier().to(device)
+    check_path = os.path.join(model_folder, 'model_best_{}.pth.tar'.format(f))
+    model = utils.load_checkpoint(check_path, model)
+    mumrmur_models=model
 
         # # load the outcome classifiers
         # filename = os.path.join(model_folder, 'outcome_model_{}.sav'.format(i))
@@ -273,76 +274,61 @@ def load_challenge_model(model_folder, verbose):
 
 # Run your trained model. This function is *required*. You should edit this function to add your code, but do *not* change the
 # arguments of this function.
-def run_challenge_model(model, data, recordings, verbose):
+def run_challenge_model(model, data, recordings, f,murmur,pid):
     # separate the murmur and outcome classifiers
     murmur_models = model['murmur_models']
     # outcome_models = model['outcome_models']
 
-    murmur_classes = ['Present',  'Absent']#'Unknown',
+    murmur_classes = ['Present', 'Absent']
     num_record = len(recordings)
     # get the age, sex, and pregnancy features
     # age, gender, pregnancy = get_features_mod(data)
     wide_fea = get_features_mod(data)
     # wide_fea = np.array((age, gender, pregnancy))
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    labels_ens = np.zeros((5, ))
-    probabilities_ens = np.zeros((5, 2))
-    for i in range(5):
-        model_tmp = murmur_models[i]
-        model_tmp.eval()
+    labels_ens = None
+    # probabilities_ens = np.zeros((1, 2))
+    # for i in range(5):
+    model_tmp = murmur_models
+    model_tmp.eval()
 
-        val_ds = SoundDS_valPatch(recordings, wide_fea)
-        val_loader = torch.utils.data.DataLoader(val_ds, batch_size=1, shuffle=False)
-        pred_all = []
-        prob_all = []
-        with torch.no_grad():
-            for batch_idx, data_test in enumerate(val_loader):
-                inputs = data_test[0]
-                inputs1 = data_test[1]
-                # print(inputs1.size())
-                # outputs = model_tmp(inputs)
 
+    val_ds = SoundDS_valPatch(recordings, wide_fea)
+    val_loader = torch.utils.data.DataLoader(val_ds, batch_size=1, shuffle=False)
+    prob_all = []
+    pred_all = []
+    # if murmur=='Present':
+    #     print(pid)
+    with torch.no_grad():
+        for batch_idx, data_test in enumerate(val_loader):
+            inputs = data_test[0]
+            inputs1 = data_test[1]
+            # print(inputs1.size())
+            # outputs = model_tmp(inputs)
+
+            # _, predicted = torch.max(outputs.data, 1)
+
+            # pred_all.extend(predicted.cpu().numpy())
+            # prob_temp = torch.softmax(outputs, dim=1)  # get the probability
+            # prob_all.extend(prob_temp.data.cpu().numpy())
+            prob = []
+            for idx, input_idx in enumerate(inputs):
+                outputs = model_tmp(input_idx.to(device), inputs1[idx].to(device))
                 # _, predicted = torch.max(outputs.data, 1)
-
-                # pred_all.extend(predicted.cpu().numpy())
-                # prob_temp = torch.softmax(outputs, dim=1)  # get the probability
-                # prob_all.extend(prob_temp.data.cpu().numpy())
-                prob = []
-                for idx, input_idx in enumerate(inputs):
-                    outputs = model_tmp(input_idx.to(device), inputs1[idx].to(device))
-                    # _, predicted = torch.max(outputs.data, 1)
-                    prob_temp = torch.softmax(outputs, dim=1)  # first use the average possibility of patches to classify
-                    prob.extend(prob_temp.data.cpu().numpy())
-                prob_ave = np.mean(np.asarray(prob), axis=0)
-                predicted = np.argmax(prob_ave)
-                pred_all.append(predicted)
-                prob_all.append(prob_ave)
-        # combining results from all the recordings
-        prob_all = np.asarray(prob_all)
-        pred_all = np.asarray(pred_all)
-        # if np.all(pred_all == 2):
-        #     labels_ens[i] = 2
-        #     probabilities_ens[i, :] = np.mean(prob_all, axis=0)
-        if np.any(pred_all == 0):
-            labels_ens[i] = 0
-            probabilities_ens[i, :] = np.mean(prob_all[np.where(pred_all == 0)[0], :], axis=0)
-        else:
-            labels_ens[i] = 1
-            probabilities_ens[i, :] = np.mean(prob_all, axis=0)
-
-    # voting for the final label, the most voted as label and also the corresponding probability to calculate mean
-    voting = np.zeros((2, ))
-    voting[0] = np.count_nonzero(labels_ens == 0)
-    voting[1] = np.count_nonzero(labels_ens == 1)
-    # voting[2] = np.count_nonzero(labels_ens == 2)
-    label = np.argmax(voting, axis=0)  # when the count are the same, take as positive or unknown
-
-    prob_murmur = np.mean(probabilities_ens[np.where(labels_ens == label)[0], :], axis=0)
-
-    # convert label to one-hot vector
-    labels_murmur = np.zeros(len(murmur_classes), dtype=np.int_)
-    idx = label
-    labels_murmur[idx] = 1
+                prob_temp = torch.softmax(outputs, dim=1)  # first use the average possibility of patches to classify
+                prob.extend(prob_temp.data.cpu().numpy())
+            prob_ave = np.mean(np.asarray(prob), axis=0)
+            predicted = np.argmax(prob_ave)
+            pred_all.append(predicted)
+            prob_all.append(prob_ave)
+    # combining results from all the recordings
+    prob_all = np.asarray(prob_all)
+    pred_all = np.asarray(pred_all)
+    if np.any(pred_all == 1):
+        labels_ens = 1
+        # probabilities_ens[i, :] = np.mean(prob_all, axis=0)
+    elif np.all(pred_all == 0):
+        labels_ens = 0
 
     # # clinical outcome classification
     # outcome_classes = ['Abnormal', 'Normal']
@@ -370,12 +356,12 @@ def run_challenge_model(model, data, recordings, verbose):
     # idx = np.argmax(prob_outcome_ave)
     # labels_outcome[idx] = 1
 
-    # Concatenate classes, labels, and probabilities.
-    classes = murmur_classes #+ outcome_classes
-    labels = labels_murmur#np.concatenate((labels_murmur, labels_outcome))
-    probabilities =prob_murmur#np.concatenate((prob_murmur, prob_outcome_ave))
+    # # Concatenate classes, labels, and probabilities.
+    # classes = murmur_classes #+ outcome_classes
+    # labels = labels_murmur#np.concatenate((labels_murmur, labels_outcome))
+    # probabilities =prob_murmur#np.concatenate((prob_murmur, prob_outcome_ave))
 
-    return classes, labels, probabilities
+    return labels_ens
 
 ################################################################################
 #

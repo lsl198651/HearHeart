@@ -97,12 +97,12 @@ def evaluate_patch(model, device, test_loader, loss_fn):
 			prob_all_arr = np.asarray(patient_prob[id])
 			pred_all_arr = np.asarray(preds)
 			target_p=patient_target[id]
-			if np.any(pred_all_arr == 0):
-				labels_ens = 0
-				probabilities_ens= np.mean(prob_all_arr[np.where(pred_all_arr == 0)[0], :], axis=0)
+			if np.any(pred_all_arr == 1):
+				labels_ens = 1
+				# probabilities_ens= np.mean(prob_all_arr[np.where(pred_all_arr == 0)[0], :], axis=0)
 			else:
-				labels_ens= 1
-				probabilities_ens = np.mean(prob_all_arr, axis=0)
+				labels_ens= 0
+				# probabilities_ens = np.mean(prob_all_arr, axis=0)
 			
 			# voting for the final label, the most voted as label and also the corresponding probability to calculate mean
 			voting = np.zeros((2, ))

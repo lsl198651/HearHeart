@@ -9,62 +9,57 @@
 # where 'model' is a folder containing the your trained model, 'data' is a folder containing the Challenge data, and 'outputs' is a
 # folder for saving your model's outputs.
 
+from torcheval.metrics.functional import binary_precision,binary_recall,binary_auprc, binary_auroc,binary_accuracy,binary_f1_score,binary_confusion_matrix
+import torch
 import numpy as np, os, sys
 from helper_code import *
+from tqdm import tqdm
 from team_code import load_challenge_model, run_challenge_model
-from sklearn.model_selection import StratifiedKFold
+import csv
 # Run model.
-def run_model(model_folder, data_folder, output_folder, allow_failures, verbose):
+def run_model(model_folder, data_folder, verbose):
     # Load models.
     if verbose >= 1:
         print('Loading Challenge model...')
-
-    model = load_challenge_model(model_folder, verbose) ### Teams: Implement this function!!!
-
     # Find the patient data files.
     patient_files = find_patient_files(data_folder)
     num_patient_files = len(patient_files)
 
     if num_patient_files==0:
         raise Exception('No data was provided.')
-
-    # Create a folder for the Challenge outputs if it does not already exist.
-    os.makedirs(output_folder, exist_ok=True)
-
-    # Run the team's model on the Challenge data.
-    if verbose >= 1:
-        print('Running model on Challenge data...')
-    # 这里列出来所有文件名，分五折投票就行
-    kf = StratifiedKFold(n_splits=5, shuffle=True, random_state=2022)
-    for i, (_, val_idx) in enumerate(kf.split(patient_files)):
-        patient_files_val = np.asarray(patient_files)[val_idx]
-    # Iterate over the patient files.
-        for i in range(len(patient_files_val)):
-            # if verbose >= 2:
-            #     print('    {}/{}...'.format(i+1, num_patient_files))
-
-            patient_data = load_patient_data(patient_files_val[i])
-            recordings = load_recordings(data_folder, patient_data)
-
-            # Allow or disallow the model to fail on parts of the data; helpful for debugging.
-            try:
-                classes, labels, probabilities = run_challenge_model(model, patient_data, recordings, verbose) ### Teams: Implement this function!!!
-            except:
-                if allow_failures:
-                    if verbose >= 2:
-                        print('... failed.')
-                    classes, labels, probabilities = list(), list(), list()
-                else:
-                    raise
-
-            # Save Challenge outputs.
-            head, tail = os.path.split(patient_files[i])
-            root, extension = os.path.splitext(tail)
-            output_file = os.path.join(output_folder, root + '.csv')
-            patient_id = get_patient_id(patient_data)
-            save_challenge_outputs(output_file, patient_id, classes, labels, probabilities)
-
-    if verbose >= 1:
+    for f in range(5):
+        print(f'valid Fold {f}')
+        model = load_challenge_model(model_folder, verbose,f) ### Teams: Implement this function!!!
+        with open(f'test_fold{f}.csv', encoding="utf-8") as csvfile:
+            reader = csv.reader(csvfile)
+            valid_id = [row[0] for row in reader]
+        targeta_all=[]
+        label_all=[]
+        # Iterate over the patient files.
+        for i in tqdm(range(num_patient_files)):
+            # print(f'Running model on file {i+1} of {num_patient_files}...')
+            patient_data = load_patient_data(patient_files[i])
+            pid=get_patient_id(patient_data)  
+            if pid in valid_id:
+                recordings = load_recordings(data_folder, patient_data)
+                murmur = get_murmur(patient_data)        
+                target=1 if murmur=='Present' else 0
+                targeta_all.append(target)
+                label = run_challenge_model(model, patient_data, recordings, f,murmur,pid) ### Teams: Implement this function!!!
+                label_all.append(label)
+            else:
+                continue
+                # t.update()
+        labels_patients,target_patients=torch.tensor(label_all),torch.tensor(targeta_all),
+        prc_seg=binary_auprc(labels_patients,target_patients)
+        roc_seg=binary_auroc(labels_patients,target_patients)
+        acc_seg=binary_accuracy(labels_patients,target_patients)
+        f1_seg=binary_f1_score(labels_patients,target_patients)
+        ppv_seg=binary_precision(labels_patients,target_patients)
+        trv_seg=binary_recall(labels_patients,target_patients)
+        cm_seg=binary_confusion_matrix(labels_patients,target_patients)
+        print(f'----patient_wise---- \n acc={acc_seg:.3%}\n roc:{roc_seg:.3f}\n prc:{prc_seg:.3f}\n f1:{f1_seg:.3f}\n ppv:{ppv_seg:.3f}\n recall:{trv_seg:.3f}\n cm:')
+        print(cm_seg)
         print('Done.')
 
 if __name__ == '__main__':
@@ -75,9 +70,9 @@ if __name__ == '__main__':
     # Define the model, data, and output folders.
     # model_folder = sys.argv[1]
     # data_folder = sys.argv[2]
-    data_folder=r'D:\Shilong\murmur\01_dataset\all_data\training_data'
-    model_folder=r'D:\Shilong\murmur\00_code\HearHeart\model'
-    output_folder = r'D:\Shilong\murmur\00_code\HearHeart\output'
+    data_folder=r'D:\Shilong\murmur\Dataset\PCGdataset\training_data'
+    model_folder=r'D:\Shilong\murmur\00_Code\LM\HearHeart-1\model'
+    output_folder = r'D:\Shilong\murmur\00_Code\LM\HearHeart-1\output'
 
     # Allow or disallow the model to fail on parts of the data; helpful for debugging.
     allow_failures = False
@@ -88,4 +83,4 @@ if __name__ == '__main__':
     # else:
     #     verbose = 1
 
-    run_model(model_folder, data_folder, output_folder, allow_failures, verbose=2)
+    run_model(model_folder, data_folder,  verbose=2)
