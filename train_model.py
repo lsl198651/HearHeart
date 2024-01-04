@@ -21,7 +21,7 @@ if __name__ == '__main__':
     # data_folder = sys.argv[1]
     # model_folder = sys.argv[2]
     data_folder=r'D:\Shilong\murmur\Dataset\PCGdataset\training_data'
-    model_folder=r'D:\Shilong\murmur\00_Code\LM\HearHeart-1\model'
+    model_folder=r'D:\Shilong\murmur\00_Code\LM\HearHeart-1\model1'
 
     # # Change the level of verbosity; helpful for debugging.
     # if len(sys.argv)==4 and is_integer(sys.argv[3]):

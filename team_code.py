@@ -23,6 +23,7 @@ import utils
 from evaluation import calculate_outcome_scores, calculate_murmur_scores
 import validate
 from base_model import AudioClassifier
+from senet.se_resnet import se_resnet6
 from sklearn.metrics import classification_report, roc_auc_score, f1_score
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
@@ -178,7 +179,7 @@ def train_challenge_model(data_folder, model_folder, verbose):
         # normedWeights = torch.FloatTensor(normedWeights).to(device)
         loss_fn = nn.CrossEntropyLoss()#weight=normedWeights
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=1e-3)
-        scheduler = True
+        scheduler = False
         if scheduler:
             # scheduler = torch.optim.lr_scheduler.StepLR(optimizer, 30, gamma=0.1)
             scheduler = torch.optim.lr_scheduler.MultiStepLR(optimizer, [30, 50, 80], gamma=0.1)

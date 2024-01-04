@@ -27,7 +27,7 @@ def run_model(model_folder, data_folder, verbose):
 
     if num_patient_files==0:
         raise Exception('No data was provided.')
-    for f in range(5):
+    for f in range(3):
         print(f'valid Fold {f}')
         model = load_challenge_model(model_folder, verbose,f) ### Teams: Implement this function!!!
         with open(f'test_fold{f}.csv', encoding="utf-8") as csvfile:
@@ -71,7 +71,7 @@ if __name__ == '__main__':
     # model_folder = sys.argv[1]
     # data_folder = sys.argv[2]
     data_folder=r'D:\Shilong\murmur\Dataset\PCGdataset\training_data'
-    model_folder=r'D:\Shilong\murmur\00_Code\LM\HearHeart-1\model'
+    model_folder=r'D:\Shilong\murmur\00_Code\LM\HearHeart-1\model1'
     output_folder = r'D:\Shilong\murmur\00_Code\LM\HearHeart-1\output'
 
     # Allow or disallow the model to fail on parts of the data; helpful for debugging.
