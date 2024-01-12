@@ -163,15 +163,15 @@ def train_challenge_model(data_folder, model_folder, verbose):
         # val_ds = SoundDS_val(df_val, data_path=data_folder, mode='Val')
         train_ds = SoundDS(df_tr, data_path=data_folder, mode='train', df_wide=df_wide_tr)
         val_ds = SoundDS_Patch(df_val, data_path=data_folder, df_wide=df_wide_val)
-        train_loader = torch.utils.data.DataLoader(train_ds, batch_size=24, shuffle=True)
-        val_loader = torch.utils.data.DataLoader(val_ds, batch_size=1, shuffle=False)
+        train_loader = torch.utils.data.DataLoader(train_ds, batch_size=24, shuffle=True, num_workers=4)
+        val_loader = torch.utils.data.DataLoader(val_ds, batch_size=1, shuffle=False, num_workers=4)
 
         # Train the model.
         if verbose >= 1:
             print('Training model...')
         device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         # model = models.densenet.DenseNet(dataset='Physio', pretrained=True).to(device)
-        model = AudioClassifier().to(device)
+        model = se_resnet6().to(device)
         # nSamples = df_tr['label'].value_counts()
         # nSamples = nSamples.sort_index()
         # normedWeights = [1 - (x / sum(nSamples)) for x in nSamples]
@@ -261,7 +261,7 @@ def load_challenge_model(model_folder, verbose,f):
 
     # for i in range(5):
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-    model = AudioClassifier().to(device)
+    model = se_resnet6().to(device)
     check_path = os.path.join(model_folder, 'model_best_{}.pth.tar'.format(f))
     model = utils.load_checkpoint(check_path, model)
     mumrmur_models=model
